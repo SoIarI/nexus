@@ -1,0 +1,1702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>NEXUS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#0A0A0A;
+  --surface:#111111;
+  --surface2:#1A1A1A;
+  --surface3:#222222;
+  --border:#2A2A2A;
+  --dim:#444444;
+  --muted:#888888;
+  --text:#FFFFFF;
+  --accent:#4F8EF7;
+  --accent-dim:rgba(79,142,247,0.12);
+  --accent-hover:#3A7EF0;
+  --success:#22C55E;
+  --warning:#F59E0B;
+  --danger:#EF4444;
+  --sidebar-w:260px;
+  --nav-h:64px;
+}
+
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sans-serif;font-size:14px;line-height:1.5;overflow:hidden}
+
+/* ─── APP SHELL ─── */
+#app{display:flex;height:100vh;height:100dvh}
+
+/* ─── SIDEBAR ─── */
+#sidebar{
+  width:var(--sidebar-w);min-width:var(--sidebar-w);
+  background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden
+}
+.sidebar-header{
+  padding:18px 14px 14px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between
+}
+.nexus-logo{font-size:15px;font-weight:700;letter-spacing:.18em;color:var(--accent)}
+.agent-list{flex:1;overflow-y:auto;padding:6px}
+
+.agent-item{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 10px;border-radius:8px;cursor:pointer;
+  transition:background .15s;border:1px solid transparent;
+  position:relative
+}
+.agent-item:hover{background:var(--surface2)}
+.agent-item.active{background:var(--accent-dim);border-color:rgba(79,142,247,.35)}
+
+.agent-emoji{
+  width:32px;height:32px;border-radius:7px;background:var(--surface2);
+  display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0
+}
+.agent-item.active .agent-emoji{background:rgba(79,142,247,.18)}
+.agent-info{flex:1;min-width:0}
+.agent-name-row{display:flex;align-items:center;gap:5px;margin-bottom:2px}
+.agent-name{font-size:12px;font-weight:600}
+.agent-preview{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.sidebar-budget{padding:10px 12px;border-top:1px solid var(--border)}
+.budget-mini-row{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.budget-mini-row:last-child{margin-bottom:0}
+.budget-mini-label{font-size:10px;color:var(--muted);width:56px;flex-shrink:0}
+.budget-mini-bar{flex:1;height:3px;background:var(--surface3);border-radius:2px;overflow:hidden}
+.budget-mini-fill{height:100%;border-radius:2px;transition:width .3s}
+.budget-mini-pct{font-size:9px;color:var(--dim);width:26px;text-align:right;flex-shrink:0}
+
+.sidebar-footer{padding:10px 12px;border-top:1px solid var(--border)}
+.btn-spawn{
+  width:100%;padding:9px;background:var(--accent);color:#fff;border:none;
+  border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;
+  transition:background .15s
+}
+.btn-spawn:hover{background:var(--accent-hover)}
+
+/* ─── PROVIDER BADGES ─── */
+.pb{display:inline-flex;align-items:center;padding:1px 5px;border-radius:4px;font-size:9px;font-weight:700;letter-spacing:.02em;flex-shrink:0}
+.pb-anthropic{background:rgba(79,142,247,.2);color:#4F8EF7}
+.pb-openai   {background:rgba(168,85,247,.2);color:#A855F7}
+.pb-gemini   {background:rgba(34,197,94,.2); color:#22C55E}
+.pb-groq     {background:rgba(16,185,129,.2);color:#10B981}
+.pb-mistral  {background:rgba(249,115,22,.2);color:#F97316}
+.pb-free{background:rgba(34,197,94,.15);color:#22C55E;font-size:8px;padding:1px 4px;border-radius:3px;font-weight:700;letter-spacing:.04em}
+
+/* ─── MAIN ─── */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative}
+.view{display:none;flex:1;flex-direction:column;overflow:hidden}
+.view.active{display:flex}
+
+/* ─── CHAT VIEW ─── */
+#no-agent{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:12px;color:var(--muted);padding:40px;text-align:center
+}
+#no-agent .big-emoji{font-size:48px}
+#no-agent .title{font-size:16px;font-weight:600;color:var(--text)}
+
+#chat-wrap{display:none;flex:1;flex-direction:column;overflow:hidden}
+
+.chat-header{
+  padding:14px 18px;border-bottom:1px solid var(--border);
+  background:var(--surface);display:flex;align-items:center;gap:12px;flex-shrink:0
+}
+.chat-header-emoji{width:36px;height:36px;border-radius:8px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.chat-header-info{flex:1;min-width:0}
+.chat-agent-name{font-size:14px;font-weight:600}
+.chat-agent-meta{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-top:2px}
+.chat-actions{display:flex;gap:6px}
+.icon-btn{
+  width:30px;height:30px;border:1px solid var(--border);background:transparent;
+  color:var(--muted);border-radius:6px;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;font-size:14px;transition:all .15s;font-family:inherit
+}
+.icon-btn:hover{color:var(--text);border-color:var(--dim)}
+
+.chat-messages{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:14px}
+
+.msg-row{display:flex;gap:9px}
+.msg-row.user{flex-direction:row-reverse}
+.msg-avatar{
+  width:26px;height:26px;border-radius:6px;background:var(--surface2);
+  display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;margin-top:2px
+}
+.msg-row.user .msg-avatar{background:var(--accent-dim)}
+.msg-content{max-width:78%;display:flex;flex-direction:column}
+.msg-row.user .msg-content{align-items:flex-end}
+
+.msg-bubble{
+  padding:9px 13px;border-radius:12px;font-size:13px;line-height:1.65;word-break:break-word
+}
+.msg-row.user .msg-bubble{
+  background:var(--accent);color:#fff;border-bottom-right-radius:3px
+}
+.msg-row.assistant .msg-bubble{
+  background:var(--surface2);color:var(--text);border-bottom-left-radius:3px
+}
+.msg-bubble p{margin-bottom:5px}
+.msg-bubble p:last-child{margin-bottom:0}
+.msg-bubble ul,.msg-bubble ol{padding-left:18px;margin:5px 0}
+.msg-bubble li{margin-bottom:2px}
+.msg-bubble h1,.msg-bubble h2,.msg-bubble h3{font-weight:600;margin:8px 0 4px}
+.msg-bubble h1{font-size:15px}
+.msg-bubble h2{font-size:14px}
+.msg-bubble h3{font-size:13px}
+.msg-bubble strong{font-weight:600}
+.msg-bubble em{font-style:italic}
+.msg-bubble code{
+  background:rgba(255,255,255,.1);padding:1px 4px;border-radius:3px;
+  font-size:12px;font-family:'Courier New',monospace
+}
+.msg-row.user .msg-bubble code{background:rgba(0,0,0,.2)}
+.msg-bubble pre{
+  background:var(--surface3);border:1px solid var(--border);border-radius:7px;
+  padding:10px 12px;margin:7px 0;overflow-x:auto;font-size:11px;
+  font-family:'Courier New',monospace;line-height:1.5
+}
+.msg-bubble pre code{background:none;padding:0;font-size:11px}
+.msg-row.user .msg-bubble pre{background:rgba(0,0,0,.2);border-color:rgba(255,255,255,.1)}
+
+.msg-time{font-size:10px;color:var(--dim);margin-top:3px;padding:0 2px}
+.msg-row.user .msg-time{text-align:right}
+.msg-actions-row{display:flex;gap:5px;margin-top:5px}
+.msg-act-btn{
+  font-size:11px;color:var(--muted);background:none;
+  border:1px solid var(--border);padding:2px 7px;border-radius:4px;
+  cursor:pointer;font-family:inherit;transition:all .15s
+}
+.msg-act-btn:hover{color:var(--text);border-color:var(--dim)}
+
+.typing-row{display:flex;gap:9px}
+.typing-bubble{
+  display:flex;align-items:center;gap:4px;
+  padding:10px 13px;background:var(--surface2);border-radius:12px;border-bottom-left-radius:3px
+}
+.typing-dot{
+  width:5px;height:5px;background:var(--muted);border-radius:50%;
+  animation:tdot 1.4s infinite
+}
+.typing-dot:nth-child(2){animation-delay:.2s}
+.typing-dot:nth-child(3){animation-delay:.4s}
+@keyframes tdot{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
+
+.chat-empty{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;color:var(--muted)
+}
+.chat-empty-emoji{font-size:40px;margin-bottom:4px}
+.chat-empty-title{font-size:15px;font-weight:500;color:var(--text)}
+
+.chat-input-area{
+  padding:14px 18px;border-top:1px solid var(--border);
+  background:var(--surface);display:flex;gap:9px;align-items:flex-end;flex-shrink:0
+}
+.chat-textarea{
+  flex:1;background:var(--surface2);border:1px solid var(--border);
+  border-radius:10px;padding:10px 13px;color:var(--text);font-size:14px;
+  font-family:inherit;resize:none;outline:none;max-height:200px;min-height:42px;
+  line-height:1.5;transition:border-color .15s
+}
+.chat-textarea:focus{border-color:var(--accent)}
+.chat-textarea::placeholder{color:var(--dim)}
+.btn-send{
+  width:42px;height:42px;flex-shrink:0;background:var(--accent);border:none;
+  border-radius:10px;color:#fff;cursor:pointer;font-size:19px;font-weight:600;
+  display:flex;align-items:center;justify-content:center;transition:background .15s
+}
+.btn-send:hover{background:var(--accent-hover)}
+.btn-send:disabled{opacity:.4;cursor:default}
+
+/* ─── VIEW HEADER (tasks/projects/settings) ─── */
+.view-header{
+  padding:18px 18px 0;border-bottom:1px solid var(--border);
+  background:var(--surface);flex-shrink:0
+}
+.view-title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.view-title{font-size:17px;font-weight:700}
+.btn-primary{
+  padding:8px 15px;background:var(--accent);color:#fff;border:none;
+  border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s
+}
+.btn-primary:hover{background:var(--accent-hover)}
+.filter-tabs{display:flex;gap:2px}
+.filter-tab{
+  padding:8px 13px;background:none;border:none;border-bottom:2px solid transparent;
+  color:var(--muted);font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;
+  transition:all .15s
+}
+.filter-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.filter-tab:hover:not(.active){color:var(--text)}
+
+/* ─── TASKS ─── */
+.task-list{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px}
+.task-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:13px 15px;display:flex;gap:11px;transition:border-color .15s
+}
+.task-card:hover{border-color:var(--dim)}
+.task-tag-dot{font-size:15px;flex-shrink:0;margin-top:1px}
+.task-body-col{flex:1;min-width:0}
+.task-title-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:3px}
+.task-title{font-size:13px;font-weight:500;flex:1}
+.task-meta{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);margin-bottom:5px}
+.task-body-text{font-size:11px;color:var(--muted);margin-bottom:7px;line-height:1.5}
+.task-actions-row{display:flex;gap:5px;flex-wrap:wrap}
+
+.status-badge{padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;flex-shrink:0}
+.s-queued  {background:rgba(136,136,136,.18);color:#888}
+.s-sent    {background:rgba(79,142,247,.18); color:#4F8EF7}
+.s-progress{background:rgba(245,158,11,.18); color:#F59E0B}
+.s-done    {background:rgba(34,197,94,.18);  color:#22C55E}
+
+.btn-sm{
+  padding:4px 9px;border-radius:5px;font-size:11px;font-weight:500;cursor:pointer;
+  font-family:inherit;transition:all .15s;border:1px solid var(--border);
+  background:none;color:var(--muted)
+}
+.btn-sm:hover{color:var(--text);border-color:var(--dim)}
+.btn-sm.a{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-sm.a:hover{background:var(--accent-hover)}
+.btn-sm.g{background:rgba(34,197,94,.12);color:#22C55E;border-color:rgba(34,197,94,.3)}
+.btn-sm.d{color:var(--danger);border-color:rgba(239,68,68,.3)}
+.btn-sm.d:hover{background:rgba(239,68,68,.1)}
+
+/* ─── PROJECTS ─── */
+.projects-content{flex:1;overflow-y:auto;padding:14px}
+.projects-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+.project-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:11px;
+  padding:15px;cursor:pointer;transition:all .15s
+}
+.project-card:hover{border-color:var(--dim);transform:translateY(-1px)}
+.project-name{font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px;margin-bottom:6px}
+.color-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.project-task-count{font-size:11px;color:var(--muted)}
+
+/* ─── SETTINGS ─── */
+.settings-scroll{flex:1;overflow-y:auto;padding:18px}
+.settings-inner{max-width:580px}
+.settings-section{margin-bottom:28px}
+.settings-section-title{
+  font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--muted);
+  text-transform:uppercase;margin-bottom:10px
+}
+.settings-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.settings-row{
+  padding:13px 15px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:12px
+}
+.settings-row:last-child{border-bottom:none}
+.settings-label{
+  flex:0 0 116px;font-size:12px;font-weight:500;
+  display:flex;align-items:center;gap:6px;flex-shrink:0
+}
+.settings-input{
+  flex:1;background:var(--surface2);border:1px solid var(--border);
+  border-radius:6px;padding:7px 10px;color:var(--text);font-size:12px;
+  font-family:inherit;outline:none;transition:border-color .15s
+}
+.settings-input:focus{border-color:var(--accent)}
+.settings-input::placeholder{color:var(--dim)}
+
+.budget-track{flex:1}
+.budget-bar{height:5px;background:var(--surface3);border-radius:3px;overflow:hidden;margin-bottom:4px}
+.budget-fill{height:100%;border-radius:3px;transition:width .3s;background:var(--accent)}
+.budget-fill.w{background:var(--warning)}
+.budget-fill.c{background:var(--danger)}
+.budget-nums{font-size:11px;color:var(--muted)}
+
+.btn-danger{
+  width:100%;padding:9px 13px;text-align:left;background:rgba(239,68,68,.1);
+  color:var(--danger);border:1px solid rgba(239,68,68,.2);border-radius:7px;
+  font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .15s
+}
+.btn-danger:hover{background:rgba(239,68,68,.2)}
+
+/* ─── BOTTOM NAV (mobile) ─── */
+#bottom-nav{
+  display:none;background:var(--surface);
+  border-top:1px solid var(--border);
+  padding:6px 0 env(safe-area-inset-bottom,0)
+}
+.nav-items{display:flex}
+.nav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:5px 4px;background:none;border:none;color:var(--muted);
+  cursor:pointer;font-family:inherit;transition:color .15s
+}
+.nav-item.active{color:var(--accent)}
+.nav-item:hover:not(.active){color:var(--text)}
+.nav-icon{font-size:20px;line-height:1}
+.nav-label{font-size:10px;font-weight:500}
+
+/* ─── MODALS ─── */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.72);
+  display:flex;align-items:flex-end;justify-content:center;
+  z-index:100;backdrop-filter:blur(4px);
+  opacity:0;pointer-events:none;transition:opacity .2s
+}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:16px 16px 0 0;padding:20px;width:100%;
+  max-width:520px;max-height:90vh;overflow-y:auto;
+  transform:translateY(16px);transition:transform .2s
+}
+.modal-overlay.open .modal{transform:translateY(0)}
+
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.modal-title{font-size:15px;font-weight:700}
+.modal-close{
+  width:26px;height:26px;background:var(--surface2);border:1px solid var(--border);
+  border-radius:5px;color:var(--muted);cursor:pointer;display:flex;
+  align-items:center;justify-content:center;font-size:15px;font-family:inherit
+}
+.modal-close:hover{color:var(--text)}
+
+.form-group{margin-bottom:14px}
+.form-label{font-size:11px;font-weight:500;color:var(--muted);margin-bottom:5px;display:block}
+.form-input{
+  width:100%;background:var(--surface2);border:1px solid var(--border);
+  border-radius:7px;padding:9px 11px;color:var(--text);font-size:13px;
+  font-family:inherit;outline:none;transition:border-color .15s
+}
+.form-input:focus{border-color:var(--accent)}
+.form-input::placeholder{color:var(--dim)}
+.form-textarea{min-height:76px;resize:vertical}
+.form-select{
+  appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23888' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;
+  padding-right:28px;cursor:pointer
+}
+
+.preset-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-bottom:14px}
+.preset-btn{
+  padding:10px 11px;border:1px solid var(--border);background:var(--surface2);
+  border-radius:8px;cursor:pointer;text-align:left;transition:all .15s;font-family:inherit
+}
+.preset-btn:hover{border-color:var(--dim);background:var(--surface3)}
+.preset-btn-emoji{font-size:17px;display:block;margin-bottom:4px}
+.preset-btn-name{font-size:12px;font-weight:600;color:var(--text);display:block}
+.preset-btn-meta{font-size:10px;color:var(--muted);display:block;margin-top:2px}
+
+.divider{
+  display:flex;align-items:center;gap:8px;margin:14px 0;
+  color:var(--muted);font-size:11px
+}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.provider-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+.provider-btn{
+  padding:7px 3px;border:1px solid var(--border);background:var(--surface2);
+  border-radius:7px;cursor:pointer;text-align:center;transition:all .15s;font-family:inherit
+}
+.provider-btn:hover{border-color:var(--dim)}
+.provider-btn.sel{border-color:var(--accent);background:var(--accent-dim)}
+.provider-btn-name{font-size:10px;font-weight:600;color:var(--text);display:block}
+.provider-btn-free{font-size:9px;color:#10B981;display:block;margin-top:1px}
+
+.tag-selector{display:flex;gap:7px}
+.tag-btn{
+  flex:1;padding:8px 5px;border:1px solid var(--border);background:var(--surface2);
+  border-radius:7px;cursor:pointer;text-align:center;font-size:11px;font-weight:500;
+  color:var(--muted);transition:all .15s;font-family:inherit
+}
+.tag-btn.sel{border-color:var(--accent);color:var(--text);background:var(--accent-dim)}
+
+.color-picker{display:flex;gap:9px}
+.color-swatch{
+  width:26px;height:26px;border-radius:50%;border:2px solid transparent;
+  cursor:pointer;transition:transform .15s
+}
+.color-swatch:hover{transform:scale(1.18)}
+.color-swatch.sel{border-color:#fff;box-shadow:0 0 0 1px rgba(255,255,255,.4)}
+
+.delegate-agent-list{display:flex;flex-direction:column;gap:7px}
+.delegate-item{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;
+  border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s
+}
+.delegate-item:hover{border-color:var(--accent);background:var(--accent-dim)}
+
+/* ─── CONFIG PANEL ─── */
+#config-panel{
+  position:absolute;top:58px;right:14px;width:270px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:11px;padding:15px;z-index:50;
+  box-shadow:0 8px 32px rgba(0,0,0,.6);display:none
+}
+
+/* ─── TOAST ─── */
+#toast-area{
+  position:fixed;bottom:78px;left:50%;transform:translateX(-50%);
+  z-index:200;display:flex;flex-direction:column;gap:7px;
+  pointer-events:none;width:90%;max-width:320px
+}
+.toast{
+  background:var(--surface2);border:1px solid var(--border);border-radius:9px;
+  padding:9px 13px;font-size:12px;color:var(--text);
+  box-shadow:0 4px 20px rgba(0,0,0,.6);
+  animation:tin .18s ease,tout .18s ease 2.82s forwards;
+  display:flex;align-items:center;gap:7px
+}
+.toast.ok{border-color:rgba(34,197,94,.4)}
+.toast.err{border-color:rgba(239,68,68,.4)}
+@keyframes tin {from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes tout{from{opacity:1}to{opacity:0}}
+
+/* ─── EMPTY STATE ─── */
+.empty-state{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:7px;color:var(--muted);font-size:12px
+}
+.empty-state .ei{font-size:34px;margin-bottom:6px}
+
+/* ─── SCROLLBARS ─── */
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--dim)}
+
+/* ─── RESPONSIVE ─── */
+@media(min-width:640px){
+  .modal{border-radius:14px;margin:20px}
+  .modal-overlay{align-items:center}
+}
+@media(max-width:640px){
+  #sidebar{display:none}
+  #bottom-nav{display:block}
+  #toast-area{bottom:72px}
+  .projects-grid{grid-template-columns:repeat(2,1fr)}
+  .view-header{padding:14px 14px 0}
+  .task-list,.projects-content{padding:10px}
+  .settings-scroll{padding:14px}
+  .chat-messages{padding:14px}
+  .chat-input-area{padding:10px 14px}
+  .preset-grid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ═══ SIDEBAR ═══ -->
+<aside id="sidebar">
+  <div class="sidebar-header">
+    <span class="nexus-logo">NEXUS</span>
+    <button class="icon-btn" onclick="switchTab('settings')" title="Settings">⚙️</button>
+  </div>
+  <div id="agent-list" class="agent-list"></div>
+  <div id="sidebar-budget" class="sidebar-budget"></div>
+  <div class="sidebar-footer">
+    <button class="btn-spawn" onclick="openSpawnModal()">+ Spawn Agent</button>
+  </div>
+</aside>
+
+<!-- ═══ MAIN ═══ -->
+<main id="main">
+
+  <!-- CHAT -->
+  <div id="view-chat" class="view active">
+    <div id="no-agent">
+      <div class="big-emoji">🌐</div>
+      <div class="title">No agent selected</div>
+      <div>Spawn an agent or select one from the sidebar</div>
+      <button class="btn-primary" onclick="openSpawnModal()" style="margin-top:10px">Spawn Agent</button>
+    </div>
+    <div id="chat-wrap">
+      <div class="chat-header">
+        <div id="ch-emoji" class="chat-header-emoji"></div>
+        <div class="chat-header-info">
+          <div id="ch-name" class="chat-agent-name"></div>
+          <div id="ch-meta" class="chat-agent-meta"></div>
+        </div>
+        <div class="chat-actions">
+          <button class="icon-btn" onclick="clearChat()" title="Clear chat">🗑️</button>
+          <button class="icon-btn" onclick="toggleConfigPanel()" title="Agent settings">⚙️</button>
+        </div>
+      </div>
+      <div id="chat-messages" class="chat-messages"></div>
+      <div class="chat-input-area">
+        <textarea id="chat-input" class="chat-textarea" placeholder="Message…" rows="1"
+          onkeydown="onChatKey(event)" oninput="autoResize(this)"></textarea>
+        <button id="send-btn" class="btn-send" onclick="sendMessage()">↑</button>
+      </div>
+    </div>
+    <div id="config-panel"></div>
+  </div>
+
+  <!-- TASKS -->
+  <div id="view-tasks" class="view">
+    <div class="view-header">
+      <div class="view-title-row">
+        <span class="view-title">Tasks</span>
+        <button class="btn-primary" onclick="openCreateTask()">+ New Task</button>
+      </div>
+      <div class="filter-tabs">
+        <button class="filter-tab active" onclick="setFilter('all',this)">All</button>
+        <button class="filter-tab" onclick="setFilter('queued',this)">Queued</button>
+        <button class="filter-tab" onclick="setFilter('in_progress',this)">In Progress</button>
+        <button class="filter-tab" onclick="setFilter('done',this)">Done</button>
+      </div>
+    </div>
+    <div id="task-list" class="task-list"></div>
+  </div>
+
+  <!-- PROJECTS -->
+  <div id="view-projects" class="view">
+    <div class="view-header">
+      <div class="view-title-row">
+        <div style="display:flex;align-items:center;gap:10px">
+          <button id="proj-back" class="btn-sm" onclick="showAllProjects()" style="display:none">← Back</button>
+          <span id="proj-title" class="view-title">Projects</span>
+        </div>
+        <button class="btn-primary" onclick="openAddProject()">+ Project</button>
+      </div>
+    </div>
+    <div class="projects-content">
+      <div id="projects-grid" class="projects-grid"></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="view-settings" class="view">
+    <div class="view-header">
+      <div class="view-title-row">
+        <span class="view-title">Settings</span>
+      </div>
+    </div>
+    <div class="settings-scroll">
+      <div class="settings-inner" id="settings-inner"></div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<!-- ═══ BOTTOM NAV ═══ -->
+<nav id="bottom-nav">
+  <div class="nav-items">
+    <button class="nav-item active" onclick="switchTab('chat',this)">
+      <span class="nav-icon">💬</span><span class="nav-label">Chat</span>
+    </button>
+    <button class="nav-item" onclick="switchTab('tasks',this)">
+      <span class="nav-icon">✅</span><span class="nav-label">Tasks</span>
+    </button>
+    <button class="nav-item" onclick="switchTab('projects',this)">
+      <span class="nav-icon">📁</span><span class="nav-label">Projects</span>
+    </button>
+    <button class="nav-item" onclick="switchTab('settings',this)">
+      <span class="nav-icon">⚙️</span><span class="nav-label">Settings</span>
+    </button>
+  </div>
+</nav>
+
+<!-- ═══ MODALS ═══ -->
+
+<!-- Spawn -->
+<div id="m-spawn" class="modal-overlay" onclick="closeOnOverlay(event,'m-spawn')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Spawn Agent</span>
+      <button class="modal-close" onclick="closeModal('m-spawn')">×</button>
+    </div>
+    <div id="preset-grid" class="preset-grid"></div>
+    <div class="divider">or custom</div>
+    <div class="form-group">
+      <label class="form-label">Name</label>
+      <input type="text" class="form-input" id="s-name" placeholder="Agent name">
+    </div>
+    <div style="display:flex;gap:10px" class="form-group">
+      <div style="flex:0 0 80px">
+        <label class="form-label">Emoji</label>
+        <input type="text" class="form-input" id="s-emoji" placeholder="🤖" maxlength="2">
+      </div>
+      <div style="flex:1">
+        <label class="form-label">Provider</label>
+        <div class="provider-grid" id="spawn-provider-grid"></div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">System Prompt</label>
+      <textarea class="form-input form-textarea" id="s-prompt" placeholder="You are a helpful agent…"></textarea>
+    </div>
+    <button class="btn-primary" style="width:100%" onclick="spawnCustom()">Spawn</button>
+  </div>
+</div>
+
+<!-- Create Task -->
+<div id="m-task" class="modal-overlay" onclick="closeOnOverlay(event,'m-task')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">New Task</span>
+      <button class="modal-close" onclick="closeModal('m-task')">×</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Title *</label>
+      <input type="text" class="form-input" id="t-title" placeholder="What needs to be done">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Details</label>
+      <textarea class="form-input form-textarea" id="t-body" placeholder="Optional details…"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Tag</label>
+      <div class="tag-selector">
+        <button class="tag-btn sel" onclick="selectTag('claude_code',this)">🔴 Claude Code</button>
+        <button class="tag-btn" onclick="selectTag('free_agent',this)">🟡 Free Agent</button>
+        <button class="tag-btn" onclick="selectTag('manual',this)">⚪ Manual</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Project</label>
+      <select class="form-input form-select" id="t-project">
+        <option value="">— No Project —</option>
+      </select>
+    </div>
+    <button class="btn-primary" style="width:100%;margin-top:4px" onclick="createTask()">Create Task</button>
+  </div>
+</div>
+
+<!-- Add Project -->
+<div id="m-project" class="modal-overlay" onclick="closeOnOverlay(event,'m-project')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">New Project</span>
+      <button class="modal-close" onclick="closeModal('m-project')">×</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Name</label>
+      <input type="text" class="form-input" id="p-name" placeholder="Project name">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Color</label>
+      <div id="color-picker" class="color-picker"></div>
+    </div>
+    <button class="btn-primary" style="width:100%;margin-top:4px" onclick="createProject()">Create</button>
+  </div>
+</div>
+
+<!-- Delegate -->
+<div id="m-delegate" class="modal-overlay" onclick="closeOnOverlay(event,'m-delegate')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Delegate to Agent</span>
+      <button class="modal-close" onclick="closeModal('m-delegate')">×</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Follow-up prompt (optional)</label>
+      <textarea class="form-input form-textarea" id="d-prompt" placeholder="What should the agent do with this context?"></textarea>
+    </div>
+    <div id="delegate-list" class="delegate-agent-list"></div>
+  </div>
+</div>
+
+<div id="toast-area"></div>
+
+<script>
+// ════════════════════════════════════════════
+// CONSTANTS
+// ════════════════════════════════════════════
+const PROVIDERS = {
+  anthropic: { name:'Anthropic', free:false },
+  openai:    { name:'OpenAI',    free:false },
+  gemini:    { name:'Gemini',    free:true  },
+  groq:      { name:'Groq',      free:true  },
+  mistral:   { name:'Mistral',   free:true  },
+};
+
+const DEFAULT_MODELS = {
+  anthropic: 'claude-sonnet-4-6',
+  openai:    'gpt-4o-mini',
+  gemini:    'gemini-1.5-flash',
+  groq:      'llama-3.3-70b-versatile',
+  mistral:   'mistral-small-latest',
+};
+
+const PRESETS = [
+  { id:'general',  name:'General',  emoji:'🧠', provider:'anthropic', model:'claude-sonnet-4-6',
+    prompt:`You are General, the primary AI agent in NEXUS — Navaal's personal agent command network.
+
+Handle any task: work ops, planning, content, research, personal projects. Be direct and action-oriented. No padding. Get to the point and deliver.
+
+Navaal's context:
+- Works at Ewity POS Pvt Ltd, Maldives — sales & ops role
+- Sells Ewity POS, Coora (online ordering), Flow (service management) to SMBs
+- Runs Solace — 3D printing brand (solacemv.com)
+- Builds internal tools: Python, JS/TS, Next.js, Supabase, HTML/CSS, PowerShell, Unity C#
+- Phone is primary device. Windows PC for development.
+- Projects added ad hoc — ask if context is needed.
+
+When a task clearly needs a specialist (deep code, research, writing), say which agent to route to.` },
+
+  { id:'code', name:'Code', emoji:'⚡', provider:'anthropic', model:'claude-sonnet-4-6',
+    prompt:`You are Code, a specialist programming agent in NEXUS.
+
+Write clean, working code. Minimal explanation unless asked — lead with the solution. When debugging, identify root cause first, then fix. For architecture decisions, give options with tradeoffs, not just one answer.
+
+Familiar stacks: Python, JavaScript/TypeScript, React, Next.js, Supabase, HTML/CSS, Unity C#, PowerShell, Telegram Bot API, REST APIs.` },
+
+  { id:'sales', name:'Sales', emoji:'📊', provider:'anthropic', model:'claude-sonnet-4-6',
+    prompt:`You are Sales, a specialist outreach and sales agent in NEXUS.
+
+Write WhatsApp messages, call scripts, follow-up sequences, objection handling, and pitch content. Professional but conversational — no corporate fluff. Maldives SMBs respond to direct value and local context.
+
+Products: Ewity POS (retail/restaurant), Coora (online ordering + delivery), Flow (service business management). Buyer is typically a small business owner.` },
+
+  { id:'research', name:'Research', emoji:'🔍', provider:'groq', model:'llama-3.3-70b-versatile',
+    prompt:`You are Research, a specialist analysis agent in NEXUS.
+
+Synthesize information fast. Output structured summaries with clear headers and bullets. Prioritize actionable insight over comprehensive coverage. If something is uncertain, say so.` },
+
+  { id:'writer', name:'Writer', emoji:'✍️', provider:'groq', model:'llama-3.3-70b-versatile',
+    prompt:`You are Writer, a specialist content agent in NEXUS.
+
+Draft any written content: emails, docs, SOPs, social posts, announcements, templates. Match the tone specified. Default to clean and professional. No filler, no padding. First draft should be usable, not just a starting point.` },
+
+  { id:'ops', name:'Ops', emoji:'⚙️', provider:'gemini', model:'gemini-1.5-flash',
+    prompt:`You are Ops, a specialist operations agent in NEXUS.
+
+Design processes, write SOPs, plan projects, create checklists. Think in systems: clear inputs, steps, outputs, owners. Deliver in structured formats — tables, numbered lists, templates. Every output should be immediately actionable.` },
+
+  { id:'grunt', name:'Grunt', emoji:'🔧', provider:'groq', model:'llama-3.3-70b-versatile',
+    prompt:`You are Grunt, a general-purpose agent for quick tasks in NEXUS.
+
+Handle anything fast: boilerplate code, simple rewrites, quick lookups, formatting, data transformations, repetitive generation. Speed and accuracy over depth. No need to be thorough — just get it done.` },
+];
+
+const TAG = {
+  claude_code: { emoji:'🔴', label:'CLAUDE CODE' },
+  free_agent:  { emoji:'🟡', label:'FREE AGENT'  },
+  manual:      { emoji:'⚪', label:'MANUAL'      },
+};
+
+const STATUS = {
+  queued:      ['Queued',      's-queued'],
+  sent:        ['Sent',        's-sent'],
+  in_progress: ['In Progress', 's-progress'],
+  done:        ['Done',        's-done'],
+};
+
+const PROJECT_COLORS = ['#4F8EF7','#22C55E','#F59E0B','#EF4444','#A855F7','#F97316'];
+
+// ════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════
+let agents        = [];
+let conversations = {};  // agentId -> [{role,content,ts}]
+let tasks         = [];
+let projects      = [];
+let activeAgent   = null;
+let activeTab     = 'chat';
+let taskFilter    = 'all';
+let viewProject   = null;
+let spawnProv     = 'anthropic';
+let selectedTag   = 'claude_code';
+let selectedColor = PROJECT_COLORS[0];
+let delegateCtx   = null;
+let configOpen    = false;
+
+let BUDGET = { anthropic:{used:0,limit:500000}, openai:{used:0,limit:200000} };
+let KEYS   = { anthropic:'', openai:'', gemini:'', groq:'', mistral:'' };
+let TG     = { token:'', phone:'', pc:'' };
+
+// ════════════════════════════════════════════
+// PERSISTENCE
+// ════════════════════════════════════════════
+function save() {
+  localStorage.setItem('nx_agents',  JSON.stringify(agents));
+  localStorage.setItem('nx_convos',  JSON.stringify(conversations));
+  localStorage.setItem('nx_tasks',   JSON.stringify(tasks));
+  localStorage.setItem('nx_projs',   JSON.stringify(projects));
+  localStorage.setItem('nx_budget',  JSON.stringify(BUDGET));
+}
+
+function load() {
+  try {
+    agents        = JSON.parse(localStorage.getItem('nx_agents')  || '[]');
+    conversations = JSON.parse(localStorage.getItem('nx_convos')  || '{}');
+    tasks         = JSON.parse(localStorage.getItem('nx_tasks')   || '[]');
+    projects      = JSON.parse(localStorage.getItem('nx_projs')   || '[]');
+    BUDGET        = JSON.parse(localStorage.getItem('nx_budget')  || JSON.stringify(BUDGET));
+  } catch(e) { console.error('load error', e); }
+  Object.keys(KEYS).forEach(k => { KEYS[k] = localStorage.getItem('nx_key_'+k) || ''; });
+  TG.token = localStorage.getItem('nx_tg_token') || '';
+  TG.phone = localStorage.getItem('nx_tg_phone') || '';
+  TG.pc    = localStorage.getItem('nx_tg_pc')    || '';
+}
+
+function saveKey(p, v) { KEYS[p] = v; localStorage.setItem('nx_key_'+p, v); }
+function saveTG() {
+  localStorage.setItem('nx_tg_token', TG.token);
+  localStorage.setItem('nx_tg_phone', TG.phone);
+  localStorage.setItem('nx_tg_pc',    TG.pc);
+}
+
+// ════════════════════════════════════════════
+// API ROUTING
+// ════════════════════════════════════════════
+async function callAgent(agent, msgs) {
+  const key = KEYS[agent.provider];
+
+  if (agent.provider === 'anthropic') {
+    if (!key) throw new Error('No Anthropic API key — add it in Settings');
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: agent.model || DEFAULT_MODELS.anthropic,
+        max_tokens: 4096,
+        system: agent.systemPrompt,
+        messages: msgs,
+      }),
+    });
+    if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.error?.message || `Anthropic ${r.status}`); }
+    const d = await r.json();
+    BUDGET.anthropic.used += (d.usage?.input_tokens||0) + (d.usage?.output_tokens||0);
+    save(); return d.content[0].text;
+  }
+
+  if (agent.provider === 'openai') {
+    if (!key) throw new Error('No OpenAI API key — add it in Settings');
+    const r = await fetch('https://api.openai.com/v1/chat/completions', {
+      method:'POST',
+      headers:{'Authorization':'Bearer '+key,'content-type':'application/json'},
+      body: JSON.stringify({
+        model: agent.model || DEFAULT_MODELS.openai,
+        messages: [{role:'system',content:agent.systemPrompt},...msgs],
+      }),
+    });
+    if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.error?.message || `OpenAI ${r.status}`); }
+    const d = await r.json();
+    BUDGET.openai.used += d.usage?.total_tokens || 0;
+    save(); return d.choices[0].message.content;
+  }
+
+  if (agent.provider === 'gemini') {
+    if (!key) throw new Error('No Gemini API key — add it in Settings');
+    const model = agent.model || DEFAULT_MODELS.gemini;
+    const contents = [
+      { role:'user',  parts:[{text: agent.systemPrompt}] },
+      { role:'model', parts:[{text: 'Understood.'}] },
+      ...msgs.map(m => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{text: m.content}],
+      })),
+    ];
+    const r = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
+      { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({contents}) }
+    );
+    if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.error?.message || `Gemini ${r.status}`); }
+    const d = await r.json();
+    return d.candidates[0].content.parts[0].text;
+  }
+
+  // Groq + Mistral share OpenAI-compatible format
+  const endpoints = { groq:'https://api.groq.com/openai/v1/chat/completions', mistral:'https://api.mistral.ai/v1/chat/completions' };
+  const names     = { groq:'Groq', mistral:'Mistral' };
+  if (endpoints[agent.provider]) {
+    if (!key) throw new Error(`No ${names[agent.provider]} API key — add it in Settings`);
+    const r = await fetch(endpoints[agent.provider], {
+      method:'POST',
+      headers:{'Authorization':'Bearer '+key,'content-type':'application/json'},
+      body: JSON.stringify({
+        model: agent.model || DEFAULT_MODELS[agent.provider],
+        messages: [{role:'system',content:agent.systemPrompt},...msgs],
+      }),
+    });
+    if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.error?.message || `${names[agent.provider]} ${r.status}`); }
+    const d = await r.json();
+    return d.choices[0].message.content;
+  }
+
+  throw new Error('Unknown provider: ' + agent.provider);
+}
+
+// ════════════════════════════════════════════
+// AGENTS
+// ════════════════════════════════════════════
+function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+function spawnPreset(pid) {
+  const preset = PRESETS.find(p => p.id === pid);
+  if (!preset) return;
+  const existing = agents.find(a => a.presetId === pid);
+  if (existing) { toast('Already exists — switching to it','ℹ️'); selectAgent(existing.id); closeModal('m-spawn'); return; }
+  const a = {
+    id: uid(), presetId: pid,
+    name: preset.name, emoji: preset.emoji,
+    provider: preset.provider, model: preset.model,
+    systemPrompt: preset.prompt, active: true,
+  };
+  agents.push(a);
+  conversations[a.id] = [];
+  save(); selectAgent(a.id); closeModal('m-spawn');
+  renderAgentList(); renderBudget();
+  toast(`${a.emoji} ${a.name} spawned`,'✅');
+}
+
+function spawnCustom() {
+  const name = $('s-name').value.trim();
+  if (!name) { toast('Name is required','⚠️'); return; }
+  const a = {
+    id: uid(), name,
+    emoji: $('s-emoji').value.trim() || '🤖',
+    provider: spawnProv,
+    model: DEFAULT_MODELS[spawnProv],
+    systemPrompt: $('s-prompt').value.trim() || `You are ${name}, an AI agent in NEXUS. Be helpful and direct.`,
+    active: true,
+  };
+  agents.push(a);
+  conversations[a.id] = [];
+  save(); selectAgent(a.id); closeModal('m-spawn');
+  renderAgentList();
+  toast(`${a.emoji} ${a.name} spawned`,'✅');
+}
+
+function selectAgent(id) {
+  activeAgent = id;
+  const a = agents.find(a => a.id === id);
+  if (!a) return;
+  if (activeTab !== 'chat') switchTab('chat');
+  $('no-agent').style.display = 'none';
+  const cw = $('chat-wrap');
+  cw.style.display = 'flex'; cw.style.flexDirection = 'column'; cw.style.flex = '1'; cw.style.overflow = 'hidden';
+  $('ch-emoji').textContent = a.emoji;
+  $('ch-name').textContent  = a.name;
+  $('ch-meta').innerHTML    = `<span class="pb pb-${a.provider}">${PROVIDERS[a.provider].name}</span>${esc(a.model)}${PROVIDERS[a.provider].free ? ' <span class="pb-free">FREE</span>' : ''}`;
+  renderAgentList();
+  renderMessages();
+}
+
+function deleteAgent(id) {
+  if (!confirm('Delete this agent and its conversation?')) return;
+  agents = agents.filter(a => a.id !== id);
+  delete conversations[id];
+  if (activeAgent === id) { activeAgent = null; showNoAgent(); }
+  save(); renderAgentList();
+  const cp = $('config-panel');
+  if (configOpen) { cp.style.display='none'; configOpen=false; }
+  toast('Agent removed');
+}
+
+function showNoAgent() {
+  $('no-agent').style.display = 'flex';
+  $('chat-wrap').style.display = 'none';
+}
+
+// ════════════════════════════════════════════
+// CHAT
+// ════════════════════════════════════════════
+async function sendMessage() {
+  const inp  = $('chat-input');
+  const text = inp.value.trim();
+  if (!text || !activeAgent) return;
+  const a = agents.find(a => a.id === activeAgent);
+  if (!a) return;
+
+  const convos = conversations[a.id] = conversations[a.id] || [];
+  convos.push({ role:'user', content:text, ts:Date.now() });
+  inp.value = ''; inp.style.height = 'auto';
+  $('send-btn').disabled = true;
+  renderMessages(true);
+
+  try {
+    const apiMsgs = convos.filter(m => m.role==='user'||m.role==='assistant')
+      .map(m => ({ role:m.role, content:m.content }));
+    const reply = await callAgent(a, apiMsgs);
+    convos.push({ role:'assistant', content:reply, ts:Date.now() });
+    save(); renderMessages();
+    renderAgentList();
+    renderBudget();
+  } catch(err) {
+    convos.pop();
+    inp.value = text; autoResize(inp);
+    toast(err.message,'❌');
+  } finally {
+    $('send-btn').disabled = false;
+    inp.focus();
+  }
+}
+
+function onChatKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+function clearChat() {
+  if (!activeAgent || !confirm('Clear this conversation?')) return;
+  conversations[activeAgent] = [];
+  save(); renderMessages();
+}
+
+function renderMessages(showTyping=false) {
+  const el = $('chat-messages');
+  if (!el || !activeAgent) return;
+  const a = agents.find(a => a.id === activeAgent);
+  const msgs = conversations[activeAgent] || [];
+
+  if (msgs.length === 0 && !showTyping) {
+    el.innerHTML = `<div class="chat-empty">
+      <div class="chat-empty-emoji">${a?.emoji||'🤖'}</div>
+      <div class="chat-empty-title">${esc(a?.name||'Agent')}</div>
+      <div style="font-size:12px">Start a conversation</div>
+    </div>`;
+    return;
+  }
+
+  let html = '';
+  msgs.forEach((m, idx) => {
+    const isUser = m.role === 'user';
+    const time   = m.ts ? new Date(m.ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '';
+    const body   = isUser ? `<p>${esc(m.content).replace(/\n/g,'<br>')}</p>` : md(m.content);
+    html += `<div class="msg-row ${m.role}">
+      <div class="msg-avatar">${isUser ? '👤' : (a?.emoji||'🤖')}</div>
+      <div class="msg-content">
+        <div class="msg-bubble">${body}</div>
+        <div class="msg-time">${time}</div>
+        ${!isUser ? `<div class="msg-actions-row">
+          <button class="msg-act-btn" onclick="copyMsg(${idx})">Copy</button>
+          <button class="msg-act-btn" onclick="openDelegate(${idx})">Delegate →</button>
+        </div>` : ''}
+      </div>
+    </div>`;
+  });
+
+  if (showTyping) {
+    html += `<div class="typing-row">
+      <div class="msg-avatar">${a?.emoji||'🤖'}</div>
+      <div class="typing-bubble">
+        <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+      </div>
+    </div>`;
+  }
+
+  el.innerHTML = html;
+  el.scrollTop = el.scrollHeight;
+}
+
+function copyMsg(idx) {
+  const m = (conversations[activeAgent]||[])[idx];
+  if (!m) return;
+  navigator.clipboard.writeText(m.content).then(() => toast('Copied','📋'));
+}
+
+// ════════════════════════════════════════════
+// DELEGATE
+// ════════════════════════════════════════════
+function openDelegate(idx) {
+  const m = (conversations[activeAgent]||[])[idx];
+  if (!m) return;
+  delegateCtx = m.content;
+  $('d-prompt').value = '';
+  const list = $('delegate-list');
+  const others = agents.filter(a => a.id !== activeAgent);
+  list.innerHTML = others.length === 0
+    ? '<div style="color:var(--muted);font-size:12px">No other agents — spawn more first.</div>'
+    : others.map(a => `
+      <div class="delegate-item" onclick="delegateTo('${a.id}')">
+        <div class="agent-emoji">${a.emoji}</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:500">${esc(a.name)}</div>
+          <div style="font-size:11px;color:var(--muted)">${PROVIDERS[a.provider].name} · ${esc(a.model)}</div>
+        </div>
+        <span class="pb pb-${a.provider}">${PROVIDERS[a.provider].name}</span>
+      </div>`).join('');
+  openModal('m-delegate');
+}
+
+function delegateTo(agentId) {
+  const extra = $('d-prompt').value.trim();
+  const full  = extra
+    ? `Context from another agent:\n\n${delegateCtx}\n\n---\n\n${extra}`
+    : `I have this context from another agent:\n\n${delegateCtx}\n\nWhat are your thoughts?`;
+  closeModal('m-delegate');
+  selectAgent(agentId);
+  setTimeout(() => {
+    const inp = $('chat-input');
+    inp.value = full; autoResize(inp); inp.focus();
+  }, 120);
+}
+
+// ════════════════════════════════════════════
+// TASKS
+// ════════════════════════════════════════════
+function createTask() {
+  const title = $('t-title').value.trim();
+  if (!title) { toast('Title is required','⚠️'); return; }
+  const t = {
+    id: uid(), title,
+    body: $('t-body').value.trim(),
+    tag: selectedTag,
+    projectId: $('t-project').value || null,
+    status: 'queued',
+    createdAt: Date.now(), sentAt:null, doneAt:null,
+  };
+  tasks.unshift(t);
+  save(); closeModal('m-task'); renderTaskList();
+  toast(`Task created`,'✅');
+}
+
+async function sendToPC(taskId) {
+  const t = tasks.find(t => t.id === taskId);
+  if (!t) return;
+  if (!TG.token || !TG.pc) { toast('Telegram not configured — check Settings','⚠️'); return; }
+  const tag  = TAG[t.tag] || TAG.manual;
+  const proj = t.projectId ? projects.find(p => p.id === t.projectId) : null;
+  const ts   = new Date().toLocaleString();
+  const text = `${tag.emoji} [${tag.label}]\n📋 ${t.title}${t.body ? '\n\n'+t.body : ''}\n\n📁 Project: ${proj ? proj.name : '—'}\n🕐 ${ts}\n─────────────────\nReply with /done ${t.id.slice(-6)} to mark complete`;
+  try {
+    const r = await fetch(`https://api.telegram.org/bot${TG.token}/sendMessage`,
+      { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({chat_id:TG.pc, text}) });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.description);
+    t.status = 'sent'; t.sentAt = Date.now();
+    save(); renderTaskList(); toast('Sent to PC','📤');
+  } catch(e) { toast('Send failed: '+e.message,'❌'); }
+}
+
+function updateStatus(taskId, status) {
+  const t = tasks.find(t => t.id === taskId);
+  if (!t) return;
+  t.status = status;
+  if (status === 'done') t.doneAt = Date.now();
+  save(); renderTaskList();
+  toast(`Marked ${status.replace('_',' ')}`,'✅');
+}
+
+function deleteTask(taskId) {
+  if (!confirm('Delete this task?')) return;
+  tasks = tasks.filter(t => t.id !== taskId);
+  save(); renderTaskList();
+}
+
+function setFilter(f, btn) {
+  taskFilter = f;
+  document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTaskList();
+}
+
+function renderTaskList() {
+  const el = $('task-list');
+  if (!el) return;
+  let list = [...tasks];
+  if (viewProject) list = list.filter(t => t.projectId === viewProject);
+  if (taskFilter !== 'all') list = list.filter(t => t.status === taskFilter);
+  if (list.length === 0) {
+    el.innerHTML = '<div class="empty-state"><div class="ei">📭</div><div>No tasks</div></div>';
+    return;
+  }
+  el.innerHTML = list.map(t => {
+    const tag  = TAG[t.tag] || TAG.manual;
+    const [sl, sc] = STATUS[t.status] || ['Unknown','s-queued'];
+    const proj = t.projectId ? projects.find(p => p.id === t.projectId) : null;
+    const date = new Date(t.createdAt).toLocaleDateString();
+    return `<div class="task-card">
+      <div class="task-tag-dot">${tag.emoji}</div>
+      <div class="task-body-col">
+        <div class="task-title-row">
+          <div class="task-title">${esc(t.title)}</div>
+          <span class="status-badge ${sc}">${sl}</span>
+        </div>
+        <div class="task-meta">
+          ${proj ? `<span>📁 ${esc(proj.name)}</span>` : ''}
+          <span>${date}</span>
+        </div>
+        ${t.body ? `<div class="task-body-text">${esc(t.body.slice(0,100))}${t.body.length>100?'…':''}</div>` : ''}
+        <div class="task-actions-row">
+          ${t.status==='queued'      ? `<button class="btn-sm a" onclick="sendToPC('${t.id}')">📤 Send to PC</button>` : ''}
+          ${t.status==='sent'        ? `<button class="btn-sm" onclick="updateStatus('${t.id}','in_progress')">🔄 In Progress</button>` : ''}
+          ${t.status==='in_progress' ? `<button class="btn-sm g" onclick="updateStatus('${t.id}','done')">✅ Done</button>` : ''}
+          ${t.status!=='done'        ? `<button class="btn-sm" onclick="updateStatus('${t.id}','done')" style="color:var(--muted)">Done</button>` : ''}
+          <button class="btn-sm d" onclick="deleteTask('${t.id}')">Delete</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════
+// PROJECTS
+// ════════════════════════════════════════════
+function createProject() {
+  const name = $('p-name').value.trim();
+  if (!name) { toast('Name is required','⚠️'); return; }
+  projects.push({ id:uid(), name, color:selectedColor, createdAt:Date.now() });
+  save(); closeModal('m-project'); renderProjects();
+  toast(`Project "${name}" created`,'✅');
+}
+
+function openProject(id) {
+  viewProject = id;
+  const p = projects.find(p => p.id === id);
+  $('proj-title').textContent = p?.name || 'Project';
+  $('proj-back').style.display = 'block';
+  switchTab('tasks');
+}
+
+function showAllProjects() {
+  viewProject = null;
+  $('proj-title').textContent = 'Projects';
+  $('proj-back').style.display = 'none';
+  renderProjects(); renderTaskList();
+}
+
+function deleteProject(id) {
+  if (!confirm('Delete this project?')) return;
+  projects = projects.filter(p => p.id !== id);
+  tasks.forEach(t => { if (t.projectId === id) t.projectId = null; });
+  save(); renderProjects(); renderTaskList();
+}
+
+function renderProjects() {
+  const el = $('projects-grid');
+  if (!el) return;
+  if (projects.length === 0) {
+    el.innerHTML = '<div class="empty-state"><div class="ei">📁</div><div>No projects yet</div></div>';
+    return;
+  }
+  el.innerHTML = projects.map(p => {
+    const cnt = tasks.filter(t => t.projectId === p.id).length;
+    return `<div class="project-card" onclick="openProject('${p.id}')">
+      <div class="project-name"><span class="color-dot" style="background:${p.color}"></span>${esc(p.name)}</div>
+      <div class="project-task-count">${cnt} task${cnt!==1?'s':''}</div>
+    </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════
+// SETTINGS
+// ════════════════════════════════════════════
+function renderSettings() {
+  const el = $('settings-inner');
+  if (!el) return;
+
+  const provRows = Object.entries(PROVIDERS).map(([k,p]) => `
+    <div class="settings-row">
+      <div class="settings-label">
+        <span class="pb pb-${k}">${p.name}</span>
+        ${p.free ? '<span class="pb-free">Free</span>' : ''}
+      </div>
+      <input type="password" class="settings-input" placeholder="API key…"
+        value="${esc(KEYS[k])}" autocomplete="off"
+        onchange="saveKey('${k}',this.value)">
+    </div>`).join('');
+
+  const budgetRows = ['anthropic','openai'].map(p => {
+    const b = BUDGET[p];
+    const pct = Math.min(100, (b.used/b.limit)*100);
+    const cls = pct>90?'c':pct>70?'w':'';
+    return `<div class="settings-row" style="flex-direction:column;align-items:stretch;gap:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span class="pb pb-${p}">${PROVIDERS[p].name}</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;color:var(--muted)">${b.used.toLocaleString()} /</span>
+          <input type="number" class="settings-input"
+            style="width:90px;padding:4px 7px;font-size:11px"
+            value="${b.limit}"
+            onchange="BUDGET['${p}'].limit=parseInt(this.value)||500000;save();renderSettings()">
+          <button class="btn-sm" onclick="BUDGET['${p}'].used=0;save();renderSettings()">Reset</button>
+        </div>
+      </div>
+      <div class="budget-bar"><div class="budget-fill ${cls}" style="width:${pct}%"></div></div>
+      <div class="budget-nums">${Math.round(pct)}% used</div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="settings-section">
+      <div class="settings-section-title">API Keys</div>
+      <div class="settings-card">${provRows}</div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">Telegram Bridge</div>
+      <div class="settings-card">
+        <div class="settings-row">
+          <div class="settings-label">Bot Token</div>
+          <input type="password" class="settings-input" placeholder="123456:ABC…"
+            value="${esc(TG.token)}"
+            onchange="TG.token=this.value;saveTG()">
+        </div>
+        <div class="settings-row">
+          <div class="settings-label">Phone Chat ID</div>
+          <input type="text" class="settings-input" placeholder="Your chat ID"
+            value="${esc(TG.phone)}"
+            onchange="TG.phone=this.value;saveTG()">
+        </div>
+        <div class="settings-row">
+          <div class="settings-label">PC Chat ID</div>
+          <input type="text" class="settings-input" placeholder="PC chat ID"
+            value="${esc(TG.pc)}"
+            onchange="TG.pc=this.value;saveTG()">
+        </div>
+        <div class="settings-row">
+          <div style="margin-left:auto">
+            <button class="btn-sm a" onclick="testBridge()">🟢 Test Bridge</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">Token Budget</div>
+      <div class="settings-card">${budgetRows}</div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">Danger Zone</div>
+      <div class="settings-card" style="border-color:rgba(239,68,68,.2)">
+        <div class="settings-row"><button class="btn-danger" onclick="dangerClearConvos()">🗑️ Clear All Conversations</button></div>
+        <div class="settings-row"><button class="btn-danger" onclick="dangerResetAgents()">↩️ Reset All Agents</button></div>
+        <div class="settings-row"><button class="btn-danger" onclick="dangerClearTasks()">📭 Clear All Tasks</button></div>
+      </div>
+    </div>`;
+}
+
+async function testBridge() {
+  if (!TG.token) { toast('No bot token','⚠️'); return; }
+  const ids = [TG.phone, TG.pc].filter(Boolean);
+  if (!ids.length) { toast('No chat IDs set','⚠️'); return; }
+  let ok = 0;
+  for (const id of ids) {
+    try {
+      const r = await fetch(`https://api.telegram.org/bot${TG.token}/sendMessage`,
+        { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({chat_id:id, text:'🟢 NEXUS connected'}) });
+      const d = await r.json();
+      if (d.ok) ok++;
+    } catch(e) {}
+  }
+  if (ok === ids.length) toast('Bridge OK!','🟢');
+  else if (ok) toast(`Partial: ${ok}/${ids.length}`,'⚠️');
+  else toast('Bridge failed — check token and IDs','❌');
+}
+
+function dangerClearConvos() {
+  if (!confirm('Clear ALL conversations?')) return;
+  agents.forEach(a => { conversations[a.id] = []; });
+  save(); if (activeAgent) renderMessages();
+  toast('Conversations cleared');
+}
+function dangerResetAgents() {
+  if (!confirm('Remove all agents?')) return;
+  agents=[]; conversations={}; activeAgent=null;
+  save(); showNoAgent(); renderAgentList();
+  toast('Agents reset');
+}
+function dangerClearTasks() {
+  if (!confirm('Delete all tasks?')) return;
+  tasks=[]; save(); renderTaskList();
+  toast('Tasks cleared');
+}
+
+// ════════════════════════════════════════════
+// CONFIG PANEL
+// ════════════════════════════════════════════
+function toggleConfigPanel() {
+  const cp = $('config-panel');
+  configOpen = !configOpen;
+  if (configOpen) { renderConfigPanel(); cp.style.display='block'; }
+  else cp.style.display='none';
+}
+
+function renderConfigPanel() {
+  const a = agents.find(a => a.id === activeAgent);
+  if (!a) return;
+  const cp = $('config-panel');
+  cp.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:600">Agent Config</div>
+      <button class="modal-close" onclick="toggleConfigPanel()">×</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Name</label>
+      <input class="form-input" value="${esc(a.name)}"
+        onchange="patchAgent('${a.id}','name',this.value)">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Emoji</label>
+      <input class="form-input" maxlength="2" value="${esc(a.emoji)}" style="width:70px"
+        onchange="patchAgent('${a.id}','emoji',this.value)">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Provider</label>
+      <select class="form-input form-select"
+        onchange="patchAgent('${a.id}','provider',this.value);patchAgent('${a.id}','model',DEFAULT_MODELS[this.value]);renderConfigPanel();selectAgent('${a.id}')">
+        ${Object.entries(PROVIDERS).map(([k,p])=>`<option value="${k}" ${a.provider===k?'selected':''}>${p.name}${p.free?' (Free)':''}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Model</label>
+      <input class="form-input" value="${esc(a.model)}"
+        onchange="patchAgent('${a.id}','model',this.value)">
+    </div>
+    <div class="form-group">
+      <label class="form-label">System Prompt</label>
+      <textarea class="form-input form-textarea" style="min-height:110px"
+        onchange="patchAgent('${a.id}','systemPrompt',this.value)">${esc(a.systemPrompt)}</textarea>
+    </div>
+    <button class="btn-danger" style="font-size:11px;padding:7px 11px"
+      onclick="deleteAgent('${a.id}')">Delete Agent</button>`;
+}
+
+function patchAgent(id, field, val) {
+  const a = agents.find(a => a.id === id);
+  if (!a) return;
+  a[field] = val;
+  if (field==='name') { $('ch-name').textContent = val; renderAgentList(); }
+  if (field==='emoji') { $('ch-emoji').textContent = val; renderAgentList(); }
+  save();
+}
+
+// ════════════════════════════════════════════
+// SIDEBAR RENDER
+// ════════════════════════════════════════════
+function renderAgentList() {
+  const el = $('agent-list');
+  if (!el) return;
+  if (agents.length === 0) {
+    el.innerHTML = '<div style="padding:18px;text-align:center;color:var(--muted);font-size:12px">No agents yet.<br>Spawn one to begin.</div>';
+    return;
+  }
+  el.innerHTML = agents.map(a => {
+    const msgs = conversations[a.id] || [];
+    const last = [...msgs].reverse().find(m => m.role==='assistant');
+    const preview = last ? last.content.slice(0,52) : 'No messages yet';
+    return `<div class="agent-item ${activeAgent===a.id?'active':''}" onclick="selectAgent('${a.id}')">
+      <div class="agent-emoji">${a.emoji}</div>
+      <div class="agent-info">
+        <div class="agent-name-row">
+          <span class="agent-name">${esc(a.name)}</span>
+          <span class="pb pb-${a.provider}" style="font-size:8px">${a.provider.slice(0,3).toUpperCase()}</span>
+          ${PROVIDERS[a.provider].free ? '<span class="pb-free" style="font-size:8px">F</span>' : ''}
+        </div>
+        <div class="agent-preview">${esc(preview)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderBudget() {
+  const el = $('sidebar-budget');
+  if (!el) return;
+  el.innerHTML = ['anthropic','openai'].map(p => {
+    const b = BUDGET[p];
+    const pct = Math.min(100,(b.used/b.limit)*100);
+    const clr = pct>90?'var(--danger)':pct>70?'var(--warning)':'var(--accent)';
+    return `<div class="budget-mini-row">
+      <div class="budget-mini-label">${p==='anthropic'?'Anthropic':'OpenAI'}</div>
+      <div class="budget-mini-bar"><div class="budget-mini-fill" style="width:${pct}%;background:${clr}"></div></div>
+      <div class="budget-mini-pct">${Math.round(pct)}%</div>
+    </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════
+// MODALS
+// ════════════════════════════════════════════
+function openModal(id) { $(id).classList.add('open'); document.body.style.overflow='hidden'; }
+function closeModal(id) { $(id).classList.remove('open'); document.body.style.overflow=''; }
+function closeOnOverlay(e, id) { if (e.target === $(id)) closeModal(id); }
+
+function openSpawnModal() {
+  $('preset-grid').innerHTML = PRESETS.map(p => `
+    <button class="preset-btn" onclick="spawnPreset('${p.id}')">
+      <span class="preset-btn-emoji">${p.emoji}</span>
+      <span class="preset-btn-name">${p.name}</span>
+      <span class="preset-btn-meta">${PROVIDERS[p.provider].name}${PROVIDERS[p.provider].free?' · Free':''}</span>
+    </button>`).join('');
+  renderSpawnProviders();
+  $('s-name').value=''; $('s-emoji').value=''; $('s-prompt').value='';
+  openModal('m-spawn');
+}
+
+function renderSpawnProviders() {
+  $('spawn-provider-grid').innerHTML = Object.entries(PROVIDERS).map(([k,p]) => `
+    <button class="provider-btn ${spawnProv===k?'sel':''}"
+      onclick="spawnProv='${k}';document.querySelectorAll('.provider-btn').forEach(b=>b.classList.remove('sel'));this.classList.add('sel')">
+      <span class="provider-btn-name">${p.name}</span>
+      ${p.free ? '<span class="provider-btn-free">✓ Free</span>' : '<span style="font-size:9px;color:var(--muted)">Paid</span>'}
+    </button>`).join('');
+}
+
+function openCreateTask() {
+  const sel = $('t-project');
+  sel.innerHTML = '<option value="">— No Project —</option>' +
+    projects.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
+  $('t-title').value=''; $('t-body').value='';
+  selectedTag = 'claude_code';
+  document.querySelectorAll('.tag-btn').forEach((b,i) => b.classList.toggle('sel', i===0));
+  openModal('m-task');
+}
+
+function selectTag(tag, btn) {
+  selectedTag = tag;
+  document.querySelectorAll('.tag-btn').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+}
+
+function openAddProject() {
+  $('p-name').value = '';
+  selectedColor = PROJECT_COLORS[0];
+  $('color-picker').innerHTML = PROJECT_COLORS.map(c =>
+    `<div class="color-swatch ${c===selectedColor?'sel':''}" style="background:${c}"
+      onclick="selectedColor='${c}';document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('sel'));this.classList.add('sel')"></div>`
+  ).join('');
+  openModal('m-project');
+}
+
+// ════════════════════════════════════════════
+// TAB SWITCHING
+// ════════════════════════════════════════════
+function switchTab(tab, navBtn) {
+  activeTab = tab;
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  $('view-'+tab).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  if (navBtn) {
+    navBtn.classList.add('active');
+  } else {
+    const idx = ['chat','tasks','projects','settings'].indexOf(tab);
+    document.querySelectorAll('.nav-item')[idx]?.classList.add('active');
+  }
+  if (tab==='settings')  renderSettings();
+  if (tab==='tasks')     renderTaskList();
+  if (tab==='projects')  renderProjects();
+  if (tab==='chat' && activeAgent) renderMessages();
+}
+
+// ════════════════════════════════════════════
+// UTILITIES
+// ════════════════════════════════════════════
+function $(id) { return document.getElementById(id); }
+
+function esc(s) {
+  if (!s) return '';
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function md(text) {
+  if (!text) return '';
+
+  // Escape HTML first, except we need to handle code blocks specially
+  const blocks = [];
+  let escaped = text.replace(/```([\s\S]*?)```/g, (_, inner) => {
+    const code = inner.replace(/^[a-z]+\n?/, '');
+    blocks.push(`<pre><code>${esc(code)}</code></pre>`);
+    return `\x00${blocks.length-1}\x00`;
+  });
+
+  // Inline code before escaping the rest
+  const icodes = [];
+  escaped = escaped.replace(/`([^`\n]+)`/g, (_, inner) => {
+    icodes.push(`<code>${esc(inner)}</code>`);
+    return `\x01${icodes.length-1}\x01`;
+  });
+
+  // Now escape remaining HTML
+  escaped = escaped
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+
+  // Inline formatting
+  escaped = escaped
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/__(.+?)__/g, '<strong>$1</strong>')
+    .replace(/_(.+?)_/g, '<em>$1</em>');
+
+  // Headers
+  escaped = escaped
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm,  '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm,   '<h1>$1</h1>');
+
+  // Lists — collect consecutive lines
+  escaped = escaped.replace(/((?:^[-*] .+\n?)+)/gm, match => {
+    const items = match.trim().split('\n').map(l => `<li>${l.replace(/^[-*] /, '')}</li>`).join('');
+    return `<ul>${items}</ul>`;
+  });
+  escaped = escaped.replace(/((?:^\d+\. .+\n?)+)/gm, match => {
+    const items = match.trim().split('\n').map(l => `<li>${l.replace(/^\d+\. /, '')}</li>`).join('');
+    return `<ol>${items}</ol>`;
+  });
+
+  // Paragraphs
+  const parts = escaped.split(/\n{2,}/);
+  escaped = parts.map(p => {
+    p = p.trim();
+    if (!p) return '';
+    if (p.startsWith('<h') || p.startsWith('<ul') || p.startsWith('<ol') || p.startsWith('\x00')) return p;
+    return `<p>${p.replace(/\n/g,'<br>')}</p>`;
+  }).join('');
+
+  // Restore placeholders
+  escaped = escaped.replace(/\x00(\d+)\x00/g, (_, i) => blocks[i]);
+  escaped = escaped.replace(/\x01(\d+)\x01/g, (_, i) => icodes[i]);
+
+  return escaped;
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 200) + 'px';
+}
+
+function toast(msg, icon='ℹ️') {
+  const area = $('toast-area');
+  const el = document.createElement('div');
+  const ok = icon==='✅'||icon==='🟢'||icon==='📋'||icon==='📤';
+  const err = icon==='❌';
+  el.className = `toast${ok?' ok':err?' err':''}`;
+  el.innerHTML = `<span>${icon}</span><span>${esc(msg)}</span>`;
+  area.appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+
+// ════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════
+function init() {
+  load();
+  renderAgentList();
+  renderBudget();
+  renderTaskList();
+  renderProjects();
+
+  if (agents.length > 0) selectAgent(agents[0].id);
+  else showNoAgent();
+
+  // Close config panel on outside click
+  document.addEventListener('click', e => {
+    if (!configOpen) return;
+    const cp = $('config-panel');
+    const hdr = document.querySelector('.chat-header');
+    if (!cp.contains(e.target) && !(hdr && hdr.contains(e.target))) {
+      cp.style.display = 'none';
+      configOpen = false;
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

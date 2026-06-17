@@ -1,0 +1,5 @@
+# Never commit real credentials
+nexus-config.json
+
+# Keep the template
+!nexus-config.json.example
